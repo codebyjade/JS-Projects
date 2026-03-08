@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Not Hotdog</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Anton&family=DM+Sans:wght@400;500;600&display=swap');
+
+  :root {
+    --red: #ff2d2d;
+    --yellow: #ffd60a;
+    --green: #00e676;
+    --dark: #111;
+    --card: #1a1a1a;
+    --border: #2a2a2a;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--dark);
+    color: white;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 32px 20px;
+    gap: 28px;
+  }
+
+  /* Header */
+  .header { text-align: center; }
+
+  .show-title {
+    font-size: 0.65rem;
+    letter-spacing: 0.4em;
+    color: #666;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  h1 {
+    font-family: 'Anton', sans-serif;
+    font-size: clamp(2.8rem, 8vw, 5rem);
+    line-height: 1;
+    letter-spacing: -1px;
+  }
+
+  h1 .not { color: var(--red); }
+  h1 .dog { color: var(--yellow); }
+
+  .subtitle { color: #666; font-size: 0.85rem; margin-top: 8px; }
+
+  /* Upload zone */
+  .upload-zone {
+    width: 100%;
+    max-width: 520px;
+    border: 2px dashed var(--border);
+    border-radius: 20px;
+    padding: 40px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.25s;
+    background: var(--card);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .upload-zone:hover, .upload-zone.drag { border-color: var(--yellow); background: rgba(255,214,10,0.04); }
+
+  .upload-icon { font-size: 3.5rem; margin-bottom: 12px; display: block; }
+  .upload-zone h3 { font-size: 1rem; font-weight: 600; margin-bottom: 6px; }
+  .upload-zone p { color: #666; font-size: 0.82rem; }
+
+  .upload-zone input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* URL input */
+  .url-row {
+    width: 100%;
+    max-width: 520px;
+    display: flex;
+    gap: 10px;
+  }
+
+  .url-row input {
+    flex: 1;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 16px;
+    color: white;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .url-row input:focus { border-color: var(--yellow); }
+  .url-row input::placeholder { color: #444; }
+
+  .btn-analyze {
+    padding: 12px 22px;
+    background: var(--yellow);
+    border: none;
+    border-radius: 12px;
+    color: black;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .btn-analyze:hover { background: #ffe55a; transform: translateY(-1px); }
+  .btn-analyze:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  /* Preview + Result */
+  .analysis-panel {
+    width: 100%;
+    max-width: 520px;
+    display: none;
+    gap: 20px;
+    flex-direction: column;
+  }
+
+  .analysis-panel.show { display: flex; }
+
+  .preview-img {
+    width: 100%;
+    max-height: 280px;
+    object-fit: contain;
+    border-radius: 16px;
+    background: var(--card);
+    border: 1px solid var(--border);
+  }
+
+  /* Result card */
+  .result-card {
+    border-radius: 20px;
+    padding: 28px;
+    text-align: center;
+    transition: all 0.4s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .result-card.hotdog {
+    background: linear-gradient(135deg, #1a2a0a, #0a1a0a);
+    border: 2px solid var(--green);
+  }
+
+  .result-card.not-hotdog {
+    background: linear-gradient(135deg, #2a0a0a, #1a0505);
+    border: 2px solid var(--red);
+  }
+
+  .result-card.thinking {
+    background: var(--card);
+    border: 2px solid var(--border);
+  }
+
+  .verdict-emoji { font-size: 4rem; margin-bottom: 8px; display: block; }
+
+  .verdict-text {
+    font-family: 'Anton', sans-serif;
+    font-size: 2.8rem;
+    letter-spacing: -1px;
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+
+  .result-card.hotdog .verdict-text { color: var(--green); }
+  .result-card.not-hotdog .verdict-text { color: var(--red); }
+
+  .verdict-sub { color: #888; font-size: 0.85rem; margin-bottom: 20px; }
+
+  /* Confidence bar */
+  .conf-bar-wrap { text-align: left; }
+  .conf-label { display: flex; justify-content: space-between; font-size: 0.75rem; color: #666; margin-bottom: 6px; }
+  .conf-bar {
+    height: 8px;
+    background: var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .conf-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.8s ease;
+    background: var(--green);
+  }
+  .not-hotdog .conf-fill { background: var(--red); }
+
+  /* Top labels */
+  .labels { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+  .label-tag {
+    font-size: 0.72rem;
+    padding: 4px 12px;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.07);
+    color: #aaa;
+  }
+  .label-tag.top { background: rgba(255,255,255,0.12); color: white; }
+
+  /* Samples */
+  .samples { width: 100%; max-width: 520px; }
+  .samples h3 { font-size: 0.72rem; letter-spacing: 0.2em; color: #555; text-transform: uppercase; margin-bottom: 12px; }
+  .sample-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .sample-thumb {
+    aspect-ratio: 1;
+    border-radius: 10px;
+    overflow: hidden;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: border-color 0.2s;
+    background: var(--card);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.2rem;
+  }
+  .sample-thumb:hover { border-color: var(--yellow); }
+
+  /* API key panel */
+  .setup-panel {
+    width: 100%;
+    max-width: 520px;
+    background: rgba(255,214,10,0.05);
+    border: 1px dashed rgba(255,214,10,0.3);
+    border-radius: 12px;
+    padding: 14px 18px;
+    font-size: 0.78rem;
+    color: #888;
+    line-height: 1.7;
+  }
+  .setup-panel strong { color: var(--yellow); }
+  .setup-panel code { background: rgba(255,214,10,0.1); padding: 1px 6px; border-radius: 4px; font-family: monospace; font-size: 0.72rem; }
+
+  .or-divider { color: #444; font-size: 0.8rem; text-align: center; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="show-title">Silicon Valley Inspired</div>
+  <h1><span class="not">NOT</span> <span class="dog">HOTDOG</span></h1>
+  <p class="subtitle">AI-powered food detector · Powered by Hugging Face</p>
+</div>
+
+<div class="upload-zone" id="dropZone">
+  <input type="file" accept="image/*" onchange="handleFile(event)">
+  <span class="upload-icon">📷</span>
+  <h3>Drop an image here</h3>
+  <p>or click to upload from your device</p>
+</div>
+
+<div class="or-divider">— or paste an image URL —</div>
+
+<div class="url-row">
+  <input type="text" id="urlInput" placeholder="https://example.com/food.jpg">
+  <button class="btn-analyze" id="analyzeBtn" onclick="analyzeFromURL()">Analyze</button>
+</div>
+
+<div class="setup-panel">
+  <strong>🔑 Setup:</strong> Replace <code>YOUR_HF_API_KEY</code> with your free <strong>Hugging Face API key</strong> 
+  from <strong>huggingface.co/settings/tokens</strong>. The model used is 
+  <code>google/vit-base-patch16-224</code> for image classification.
+</div>
+
+<div class="analysis-panel" id="analysisPanel">
+  <img id="previewImg" class="preview-img" src="" alt="Preview">
+  <div class="result-card thinking" id="resultCard">
+    <span class="verdict-emoji" id="verdictEmoji">🤔</span>
+    <div class="verdict-text" id="verdictText">Analyzing…</div>
+    <div class="verdict-sub" id="verdictSub">Please wait</div>
+    <div class="conf-bar-wrap" id="confWrap" style="display:none">
+      <div class="conf-label"><span>Confidence</span><span id="confPct">0%</span></div>
+      <div class="conf-bar"><div class="conf-fill" id="confFill" style="width:0%"></div></div>
+    </div>
+    <div class="labels" id="labelsList"></div>
+  </div>
+</div>
+
+<div class="samples">
+  <h3>Try a sample</h3>
+  <div class="sample-grid" id="sampleGrid">
+    <div class="sample-thumb" onclick="analyzeSample('hotdog', '🌭')">🌭</div>
+    <div class="sample-thumb" onclick="analyzeSample('pizza', '🍕')">🍕</div>
+    <div class="sample-thumb" onclick="analyzeSample('burger', '🍔')">🍔</div>
+    <div class="sample-thumb" onclick="analyzeSample('taco', '🌮')">🌮</div>
+  </div>
+</div>
+
+<script>
+  // 🔑 Replace with your Hugging Face API key
+  const HF_API_KEY = 'YOUR_HF_API_KEY';
+  const MODEL = 'google/vit-base-patch16-224';
+
+  // Hotdog-related labels the model might return
+  const HOTDOG_LABELS = [
+    'hotdog', 'hot dog', 'hot-dog', 'sausage', 'bratwurst', 'frankfurter',
+    'corn dog', 'chili dog', 'wiener', 'banger', 'weenie'
+  ];
+
+  function isHotdog(labels) {
+    return labels.some(l => HOTDOG_LABELS.some(h => l.label.toLowerCase().includes(h)));
+  }
+
+  async function classifyImageFromBlob(blob) {
+    showAnalysisPanel();
+    setThinking();
+
+    if (!HF_API_KEY || HF_API_KEY === 'YOUR_HF_API_KEY') {
+      // Demo mode — simulate result
+      await new Promise(r => setTimeout(r, 1500));
+      const demo = Math.random() > 0.5;
+      showResult(demo, demo ? 94 : 12, [
+        { label: demo ? 'hotdog' : 'pizza', score: demo ? 0.94 : 0.88 },
+        { label: demo ? 'corn dog' : 'cheese pizza', score: demo ? 0.04 : 0.08 },
+        { label: 'food', score: 0.02 }
+      ]);
+      return;
+    }
+
+    try {
+      const response = await fetch(`https://api-inference.huggingface.co/models/${MODEL}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${HF_API_KEY}`,
+          'Content-Type': blob.type || 'application/octet-stream'
+        },
+        body: blob
+      });
+
+      if (!response.ok) throw new Error(`HF API error: ${response.status}`);
+
+      const results = await response.json();
+      if (!Array.isArray(results)) throw new Error('Unexpected response');
+
+      const hotdog = isHotdog(results);
+      const topScore = Math.round((results[0]?.score || 0) * 100);
+      showResult(hotdog, topScore, results.slice(0, 5));
+    } catch (err) {
+      console.error(err);
+      showError(err.message);
+    }
+  }
+
+  async function classifyImageFromURL(url) {
+    showAnalysisPanel();
+    document.getElementById('previewImg').src = url;
+    setThinking();
+
+    try {
+      const response = await fetch(`https://api-inference.huggingface.co/models/${MODEL}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${HF_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ inputs: url })
+      });
+
+      const results = await response.json();
+      const hotdog = isHotdog(results);
+      const topScore = Math.round((results[0]?.score || 0) * 100);
+      showResult(hotdog, topScore, results.slice(0, 5));
+    } catch (err) {
+      showError(err.message);
+    }
+  }
+
+  function handleFile(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    document.getElementById('previewImg').src = url;
+    classifyImageFromBlob(file);
+  }
+
+  function analyzeFromURL() {
+    const url = document.getElementById('urlInput').value.trim();
+    if (!url) return;
+    classifyImageFromURL(url);
+  }
+
+  function analyzeSample(food, emoji) {
+    showAnalysisPanel();
+    document.getElementById('previewImg').src = '';
+    document.getElementById('previewImg').style.display = 'none';
+
+    // Demo simulation for emoji samples
+    const foodEl = document.getElementById('previewImg').parentElement;
+    setThinking();
+
+    setTimeout(() => {
+      const hotdog = food === 'hotdog';
+      const score = hotdog ? 96 : Math.floor(Math.random() * 20) + 5;
+      const labels = hotdog
+        ? [{ label: 'hotdog', score: 0.96 }, { label: 'corn dog', score: 0.03 }]
+        : [{ label: food, score: 0.9 }, { label: 'food', score: 0.05 }, { label: 'snack', score: 0.02 }];
+      showResult(hotdog, score, labels);
+
+      // Show emoji as preview
+      document.getElementById('previewImg').style.display = 'none';
+    }, 1200);
+
+    // Show emoji big in preview area
+    document.getElementById('previewImg').style.display = 'none';
+    const emojiPreview = document.createElement('div');
+    emojiPreview.style.cssText = 'font-size:8rem;text-align:center;padding:20px;background:#1a1a1a;border-radius:16px;border:1px solid #2a2a2a;';
+    emojiPreview.textContent = emoji;
+    emojiPreview.id = 'emojiPreview';
+    const prev = document.getElementById('emojiPreview');
+    if (prev) prev.remove();
+    document.getElementById('analysisPanel').insertBefore(emojiPreview, document.getElementById('resultCard'));
+  }
+
+  function showAnalysisPanel() {
+    const prev = document.getElementById('emojiPreview');
+    if (prev) prev.remove();
+    document.getElementById('previewImg').style.display = 'block';
+    document.getElementById('analysisPanel').classList.add('show');
+    document.getElementById('analysisPanel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function setThinking() {
+    const card = document.getElementById('resultCard');
+    card.className = 'result-card thinking';
+    document.getElementById('verdictEmoji').textContent = '🔍';
+    document.getElementById('verdictText').textContent = 'Analyzing…';
+    document.getElementById('verdictSub').textContent = 'AI is classifying your image';
+    document.getElementById('confWrap').style.display = 'none';
+    document.getElementById('labelsList').innerHTML = '';
+  }
+
+  function showResult(hotdog, confidence, labels) {
+    const card = document.getElementById('resultCard');
+    card.className = `result-card ${hotdog ? 'hotdog' : 'not-hotdog'}`;
+
+    document.getElementById('verdictEmoji').textContent = hotdog ? '🌭' : '🚫';
+    document.getElementById('verdictText').textContent = hotdog ? 'HOTDOG' : 'NOT HOTDOG';
+    document.getElementById('verdictSub').textContent = hotdog
+      ? 'Hotdog detected! Good choice.' : 'That is definitely not a hotdog.';
+
+    // Confidence bar
+    document.getElementById('confWrap').style.display = 'block';
+    document.getElementById('confPct').textContent = `${confidence}%`;
+    setTimeout(() => {
+      document.getElementById('confFill').style.width = `${confidence}%`;
+    }, 50);
+
+    // Labels
+    const labelsEl = document.getElementById('labelsList');
+    labelsEl.innerHTML = labels.map((l, i) =>
+      `<span class="label-tag ${i === 0 ? 'top' : ''}">${l.label} ${Math.round(l.score * 100)}%</span>`
+    ).join('');
+  }
+
+  function showError(msg) {
+    const card = document.getElementById('resultCard');
+    card.className = 'result-card thinking';
+    document.getElementById('verdictEmoji').textContent = '⚠️';
+    document.getElementById('verdictText').style.fontSize = '1.2rem';
+    document.getElementById('verdictText').textContent = 'Error';
+    document.getElementById('verdictSub').textContent = msg;
+  }
+
+  // Drag and drop
+  const dropZone = document.getElementById('dropZone');
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('drag');
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) {
+      document.getElementById('previewImg').src = URL.createObjectURL(file);
+      classifyImageFromBlob(file);
+    }
+  });
+</script>
+</body>
+</html>
